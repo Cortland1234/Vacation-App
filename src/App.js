@@ -8,36 +8,58 @@ import Map from "./components/Map/Map";
 
 const App = () => {
     const [places, setPlaces] = useState([]);
-
+    const [filteredPlaces, setFilteredPlaces] = useState([]);
     const [coordinates, setCoordinates] = useState({});
+
     const[bounds, setBounds] = useState({});
     const [childClicked, setChildClicked] = useState(null);
 
+    const [isLoading, setIsLoading] = useState(false);
+    const [type, setType] = useState("restaurants");
+    const [rating, setRating] = useState("");
+
     useEffect(() => {
+
         navigator.geolocation.getCurrentPosition(({ coords: {latitude, longitude}}) => {
             setCoordinates({lat: latitude, lng: longitude});
         })
     }, []) /*getting current positon coordinates*/
 
     useEffect(() => {
+        const filteredPlaces = places.filter((place) => place.rating > rating)
+
+        setFilteredPlaces(filteredPlaces);
+    }, [rating]); /*useEffect for filtering places by rating*/
+
+    useEffect(() => {
+        if (bounds.sw && bounds.ne) {
+        setIsLoading(true);
         console.log(coordinates, bounds);
-        getPlaceData(bounds.sw, bounds.ne)
+        getPlaceData(type, bounds.sw, bounds.ne)
             .then((data) => {
                 console.log(data);
 
-                setPlaces(data);
+                setPlaces(data?.filter((place) => place.name && place.num_reviews > 0));
+                setFilteredPlaces([]);
+                setIsLoading(false);
             })
-    }, [coordinates, bounds]); /*Calling getPlaceData and getting data from API from dynamically changing coordinates via map*/
+        }
+    }, [type, bounds]); /*Calling getPlaceData and getting data from API from dynamically changing coordinates via map*/
 
     return (
         <>
         <CssBaseline />
-            <Header />
+            <Header setCoordinates={setCoordinates}/>
             <Grid container space ={3} style={{ width: '100%'}}>
                 <Grid item xs={12} md={4}>
                     <List 
-                        places={places}
+                        places={filteredPlaces.length ? filteredPlaces : places}
                         childClicked={childClicked}
+                        isLoading={isLoading}
+                        type={type}
+                        setType={setType}
+                        rating={rating}
+                        setRating={setRating}
                     />
                 </Grid>
                 <Grid item xs={12} md={8}>
@@ -45,7 +67,7 @@ const App = () => {
                         setCoordinates={setCoordinates}
                         setBounds={setBounds}
                         coordinates={coordinates}
-                        places={places}
+                        places={filteredPlaces.length ? filteredPlaces : places}
                         setChildClicked={setChildClicked}
                     />
                 </Grid>
